@@ -19,5 +19,18 @@
             (nth arr 0)
             (recur (parse-opcode arr idx) (+ 4 idx)))))
 
+(defn set-noun-verb [n v] (assoc (assoc file-in 1 n) 2 v))
+
 ; replace pos 1 -> 12, 2 -> 2
-(println (get-return-code (assoc (assoc file-in 1 12) 2 2)))
+(println (get-return-code (set-noun-verb 12 2)))
+
+(defn print-if-magic [noun verb]
+    (def magic-number 19690720)
+    (if (= magic-number (get-return-code (set-noun-verb noun verb)))
+        (println (+ verb (* 100 noun)))))
+
+(filterv
+    (fn [noun]
+        (def print-if-magic-pt (partial print-if-magic noun))
+        (filterv print-if-magic-pt (range 100)))
+    (range 100))
