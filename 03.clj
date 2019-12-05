@@ -3,8 +3,6 @@
 
 (defn parse-int [s] (Integer. (re-find  #"\d+" s)))
 (def file-in (str/split (slurp "./input/03") #"\n"))
-(def path-one (str/split (nth file-in 0) #","))
-(def path-two (str/split (nth file-in 1) #","))
 
 ; approach:
 ; for each path, save a bitmap around the origin and
@@ -30,19 +28,26 @@
         path
         (into [] (range 1 (+ 1(parse-int mvmt))))))
 
-(def set-one (into #{} (reduce path-to-coord-vec [ [0 0] ] path-one)))
-(def set-two (into #{} (reduce path-to-coord-vec [ [0 0] ] path-two)))
+(def path-one (reduce path-to-coord-vec [ [0 0] ] (str/split (nth file-in 0) #",")))
+(def path-two (reduce path-to-coord-vec [ [0 0] ] (str/split (nth file-in 1) #",")))
 
-(println "intersections" (set/intersection set-one set-two))
+(def intersection-set (set/intersection (into #{} path-one) (into #{} path-two)))
+(println "intersections" intersection-set)
 
 ; find the second smallest distance (smallest is zero)
 (defn abs [x] (max x (- x)))
 (defn manhattan-dist [p] (+ (abs (first p)) (abs (peek p))))
 
-(println "min distance"
-    (reduce
+(println "min manhattan distance" (reduce
     (fn [min point]
         (def d (manhattan-dist point))
-        (if (and (< d min) (> d 0)) d min))
+        (if (and (> d 0) (< d min)) d min))
+    100000 ; starting min should be huge
+    intersection-set))
+
+(println "min wire distance" (reduce
+    (fn [min point]
+        (def d (+ (.indexOf path-one point) (.indexOf path-two point)))
+        (if (and (> d 0) (< d min)) d min))
     100000
-    (set/intersection set-one set-two)))
+    intersection-set))
