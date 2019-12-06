@@ -1,6 +1,6 @@
 (require '[clojure.string :as str])
 
-(defn parse-int [s] (Integer. (re-find  #"\d+" s)))
+(defn parse-int [s] (Integer. (re-find  #"-?\d+" s)))
 (def file-in (vec (map parse-int (str/split (slurp "./input/02") #","))))
 
 (defn parse-opcode [a]

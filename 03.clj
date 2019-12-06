@@ -1,7 +1,7 @@
 (require '[clojure.string :as str])
 (require '[clojure.set :as set])
 
-(defn parse-int [s] (Integer. (re-find  #"\d+" s)))
+(defn parse-int [s] (Integer. (re-find  #"-?\d+" s)))
 (def file-in (str/split (slurp "./input/03") #"\n"))
 
 ; approach:
