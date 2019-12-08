@@ -32,8 +32,6 @@
     (if (= magic-number (nth (run-program (set-noun-verb noun verb)) 0))
         (println (+ verb (* 100 noun)))))
 
-(filterv
-    (fn [noun]
-        (def print-if-magic-pt (partial print-if-magic noun))
-        (filterv print-if-magic-pt (range 100)))
-    (range 100))
+(doseq [noun (range 100)
+        verb (range 100)]
+    (print-if-magic noun verb))
