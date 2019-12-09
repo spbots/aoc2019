@@ -1,7 +1,10 @@
 (require '[clojure.string :as str])
 
 (defn parse-int [s] (Integer. (re-find  #"-?\d+" s)))
-(def file-in (vec (map parse-int (str/split (slurp "./input/05") #","))))
+(def file-in (vec (map parse-int (str/split (slurp "./input/07") #","))))
+(def debug-in1 (vec (map parse-int (str/split "3,15,3,16,1002,16,10,16,1,16,15,15,4,15,99,0,0" #","))))
+(def debug-in2 (vec (map parse-int (str/split "3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,23,99,0,0" #","))))
+(def debug-in3 (vec (map parse-int (str/split "3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0" #","))))
 
 (defn init-state [mem inputs] {
     :m mem
@@ -42,7 +45,7 @@
         3 (do (def inval (peek (pgm :i)))
           (inc-iptr 2 (update-mem (conj pgm {:i (pop (pgm :i))}) (store-addr 0) inval)))
         ; output store
-        4 (do (println "OUT:" (op-arg 0))
+        4 (do ;(println "OUT:" (op-arg 0))
             (inc-iptr 2 (conj pgm {:o (conj (pgm :o) (op-arg 0))})))
         ; jump-true condition instruction-pointer
         5 (conj pgm
@@ -67,14 +70,26 @@
             pgm
             (recur (parse-opcode pgm)))))
 
-; (doseq [phA (range 5)
-;         phB (range 5)
-;         phC (range 5)
-;         phD (range 5)
-;         phE (range 5)]
-;     (when (= 5 (count (set [phA phB phC phD phE])))
-;         (println [phA phB phC phD phE])))
-    ; (print-if-magic noun verb))
+(defn amp-e-output [pgm phases] (reduce
+    (fn [acc x]
+        (def result (run-program (init-state pgm [acc x])))
+        (nth (result :o) 0))
+    0
+    phases))
 
-(def INPUT 5)
-(println "NEWOUT:" ((run-program (init-state file-in [INPUT])) :o))
+; (println (amp-e-output debug-in1 [4 3 2 1 0]))
+; (println (amp-e-output debug-in2 [0 1 2 3 4]))
+; (println (amp-e-output debug-in3 [1 0 4 3 2]))
+
+(println (apply max (for [phA (range 5)
+                          phB (range 5)
+                          phC (range 5)
+                          phD (range 5)
+                          phE (range 5)]
+    (if (= 5 (count (set [phA phB phC phD phE])))
+        (amp-e-output file-in [phA phB phC phD phE])
+        0
+        ))))
+
+; (def INPUT 5)
+; (println "NEWOUT:" ((run-program (init-state file-in [INPUT])) :o))
