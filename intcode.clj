@@ -1,10 +1,12 @@
 (ns aoc.intcode)
 
-(defn get-arg [arr pos mode]
+(defn get-arg [pgm pos mode]
+    (def arr (pgm :m))
     (case mode
-        0 (nth arr (nth arr pos)) ; position
-        1 (nth arr pos)           ; immediate
-        2 (nth arr pos)))         ; relative
+        0 (nth arr (nth arr pos))                   ; position
+        1 (nth arr pos)                             ; immediate
+        2 (nth arr (+ (nth arr pos) (pgm :rbase)))  ; relative
+        ))
 
 (defn arg-modes [opcode]
     ; this can probably be a reduce, but don't worry about it for now.
@@ -17,8 +19,11 @@
     (def pos (pgm :iptr))
     (def opcode (nth (pgm :m) pos))
     (def modes (arg-modes opcode))
-    (defn op-arg [n] (get-arg arr (+ pos n 1) (nth modes n)))
-    (defn store-addr [n] (nth arr (+ pos n 1)))
+    (defn op-arg [n] (get-arg pgm (+ pos n 1) (nth modes n)))
+    (defn store-addr [n]
+        (case (nth modes n)
+            0 (nth arr (+ pos n 1))
+            2 (+ (pgm :rbase) (nth arr (+ pos n 1)))))
 
     (defn update-mem [p store-addr x]
         (conj p {:m (assoc (pgm :m) store-addr x)}))
@@ -45,6 +50,8 @@
         7 (inc-iptr 4 (update-mem pgm (store-addr 2) (if (< (op-arg 0) (op-arg 1)) 1 0)))
         ; eq a b store
         8 (inc-iptr 4 (update-mem pgm (store-addr 2) (if (= (op-arg 0) (op-arg 1)) 1 0)))
+        ; inc-rbase amount
+        9 (inc-iptr 2 (conj pgm {:rbase (+ (pgm :rbase) (op-arg 0))}))
         ; end (only updates iptr)
         99 (conj pgm {:iptr -1})))
 
@@ -54,8 +61,9 @@
         (if (= -1 (pgm :iptr)) pgm (recur (parse-opcode pgm)))))
 
 (defn init-state [mem inputs] {
-    :m mem
-    :i inputs
-    :o []   ; outputs
-    :iptr 0 ; instruction pointer
+    :m (vec (flatten (conj mem (repeat 10000 0))))
+    :i inputs ; input vector
+    :o []     ; outputs
+    :iptr 0N  ; instruction pointer
+    :rbase 0N ; relative base offset
     })
