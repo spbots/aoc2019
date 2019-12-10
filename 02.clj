@@ -1,37 +1,22 @@
-(require '[clojure.string :as str])
+(require '(clojure [string :as str] [test :as test]))
+(load-file "./intcode.clj")
+(require '[aoc.intcode :as intcode])
 
 (defn parse-int [s] (Integer. (re-find  #"-?\d+" s)))
 (def file-in (vec (map parse-int (str/split (slurp "./input/02") #","))))
 
-(defn parse-opcode [a]
-    (def pos (peek a))
-    (def arr (pop a))
-    (def opcode (nth arr pos))
-    (def arg1 (nth arr (nth arr (+ pos 1))))
-    (def arg2 (nth arr (nth arr (+ pos 2))))
-    (def store-at (nth arr (+ pos 3)))
-    (case opcode
-        1 (conj (assoc arr store-at (+ arg1 arg2)) (+ 4 pos))
-        2 (conj (assoc arr store-at (* arg1 arg2)) (+ 4 pos))))
-
-(defn run-program [arr]
-    ; use the last element as the instruction pointer
-    (loop [arr (conj arr 0)]
-        (def idx (peek arr))
-        (if (= 99 (nth arr idx))
-            (pop arr)
-            (recur (parse-opcode arr)))))
-
-(defn set-noun-verb [n v] (assoc (assoc file-in 1 n) 2 v))
+; (defn set-noun-verb [n v] )
+(defn output-for-noun-verb [n v]
+    (nth ((intcode/run-program
+        (intcode/init-state (assoc (assoc file-in 1 n) 2 v) [])) :m) 0))
 
 ; replace pos 1 -> 12, 2 -> 2
-(println (nth (run-program (set-noun-verb 12 2)) 0))
+(def part1 (output-for-noun-verb 12 2))
+(println part1)
+(test/is (= 4138658 part1))
 
-(defn print-if-magic [noun verb]
-    (def magic-number 19690720)
-    (if (= magic-number (nth (run-program (set-noun-verb noun verb)) 0))
-        (println (+ verb (* 100 noun)))))
-
-(doseq [noun (range 100)
-        verb (range 100)]
-    (print-if-magic noun verb))
+(def part2 (filter #(= 19690720 (nth % 0))
+    (for [noun (range 100) verb (range 100)]
+        [(output-for-noun-verb noun verb) (+ verb (* 100 noun))])))
+(println part2)
+(test/is (= 7264 (nth (nth part2 0) 1)))
