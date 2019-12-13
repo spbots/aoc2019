@@ -1,30 +1,22 @@
 (ns aoc.intcode)
 
-(defn get-arg [pgm pos mode]
-    (def arr (pgm :m))
-    (case mode
-        0 (nth arr (nth arr pos))                   ; position
-        1 (nth arr pos)                             ; immediate
-        2 (nth arr (+ (nth arr pos) (pgm :rbase)))  ; relative
-        ))
-
-(defn arg-modes [opcode]
-    ; this can probably be a reduce, but don't worry about it for now.
-    [(rem (quot opcode 100) 10)
-     (rem (quot opcode 1000) 10)
-     (rem (quot opcode 10000) 10)])
-
 (defn parse-opcode [pgm]
     (def arr (pgm :m))
     (def pos (pgm :iptr))
     (def opcode (nth (pgm :m) pos))
-    (def modes (arg-modes opcode))
-    (defn op-arg [n] (get-arg pgm (+ pos n 1) (nth modes n)))
+    (def modes [(rem (quot opcode 100) 10)
+                (rem (quot opcode 1000) 10)
+                (rem (quot opcode 10000) 10)])
+    (defn op-arg [arg-number]
+        (def n (+ pos arg-number 1))
+        (case (nth modes arg-number)
+            0 (nth arr (nth arr n))                   ; position
+            1 (nth arr n)                             ; immediate
+            2 (nth arr (+ (nth arr n) (pgm :rbase))))); relative
     (defn store-addr [n]
         (case (nth modes n)
             0 (nth arr (+ pos n 1))
             2 (+ (pgm :rbase) (nth arr (+ pos n 1)))))
-
     (defn update-mem [p store-addr x]
         (conj p {:m (assoc (pgm :m) store-addr x)}))
     (defn inc-iptr [n p] (conj p {:iptr (+ n (p :iptr))}))
@@ -38,8 +30,7 @@
         3 (do (def inval (peek (pgm :i)))
           (inc-iptr 2 (update-mem (conj pgm {:i (pop (pgm :i))}) (store-addr 0) inval)))
         ; output store
-        4 (inc-iptr 2 ((pgm :ohandler) (conj pgm {:o (conj (pgm :o) (op-arg 0))}))
-          )
+        4 (inc-iptr 2 ((pgm :ohandler) (conj pgm {:o (conj (pgm :o) (op-arg 0))})))
         ; jump-true condition instruction-pointer
         5 (conj pgm
             {:iptr (if (not (= 0 (op-arg 0))) (op-arg 1) (+ 3 pos))})
@@ -63,7 +54,7 @@
 (defn default-output-handler [pgm] pgm)
 
 (defn init-state
-    ([mem inputs] (init-state mem inputs default-output-handler {}))
+    ([mem inputs] (init-state mem inputs default-output-handler nil))
     ([mem inputs oh state] {
     :m (vec (flatten (conj mem (repeat 10000 0))))
     :i inputs    ; input vector
