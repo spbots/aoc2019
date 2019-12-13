@@ -38,7 +38,8 @@
         3 (do (def inval (peek (pgm :i)))
           (inc-iptr 2 (update-mem (conj pgm {:i (pop (pgm :i))}) (store-addr 0) inval)))
         ; output store
-        4 (inc-iptr 2 ((pgm :ohandler) pgm (op-arg 0)))
+        4 (inc-iptr 2 ((pgm :ohandler) (conj pgm {:o (conj (pgm :o) (op-arg 0))}))
+          )
         ; jump-true condition instruction-pointer
         5 (conj pgm
             {:iptr (if (not (= 0 (op-arg 0))) (op-arg 1) (+ 3 pos))})
@@ -59,8 +60,7 @@
     (loop [pgm program]
         (if (= -1 (pgm :iptr)) pgm (recur (parse-opcode pgm)))))
 
-(defn default-output-handler [pgm oval state]
-    (conj pgm {:o (conj (pgm :o) oval)}))
+(defn default-output-handler [pgm] pgm)
 
 (defn init-state
     ([mem inputs] (init-state mem inputs default-output-handler {}))
