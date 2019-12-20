@@ -2,15 +2,6 @@
 (load-file "./intcode.clj")
 (require '[aoc.intcode :as intcode])
 
-(def debug-in (str
-"9 ORE => 2 A\n"
-"8 ORE => 3 B\n"
-"7 ORE => 5 C\n"
-"3 A, 4 B => 1 AB\n"
-"5 B, 7 C => 1 BC\n"
-"4 C, 1 A => 1 CA\n"
-"2 AB, 3 BC, 4 CA => 1 FUEL\n"))
-
 ; plan:
 ; split the line at the =>
 ;   - use the second part as a number and keyword (e.g. 1 :FUEL)
@@ -94,5 +85,50 @@
                     (into {} in-remaining)
                     in-to-replace))))))
 
-(println (reduce-to-ore init-state :FUEL 1))
-(test/is (= 741927 ((reduce-to-ore init-state :FUEL 1) :ORE)))
+(defn n-ore-for-fuel [n]
+    ((reduce-to-ore init-state :FUEL n) :ORE))
+
+(println (n-ore-for-fuel 1))
+(test/is (= 741927 (n-ore-for-fuel 1)))
+
+; max guess: 1e13 / 741927 =>
+;   13478414 fuel requires 5683017593433 ore
+(println (n-ore-for-fuel 13478414))
+
+; disappointing: I was hoping that the lazy collections
+; would allow for things like binary search to only evaluate
+; the collection at certain indices, but doing something like
+;
+; (println (+ 402169 (java.util.Collections/binarySearch
+;     (map n-ore-for-fuel (range 402169 4021690))
+;     1000000000000)))
+;
+; requires evaluating all the elements up until the pivot.
+; instead of this, rip off the binary search algorithm from
+; https://rosettacode.org/wiki/Binary_search#Clojure
+; and adapt it to find the one that is within 741927 ore.
+(defn bsearch
+    ([coll t] (bsearch coll 0 (dec (count coll)) t))
+    ([coll l u t]
+    (def ore-for-one-fuel (n-ore-for-fuel 1))
+    (if (> l u) -1
+        (let [m (quot (+ l u) 2)
+              mth (nth coll m)
+              n-ore (n-ore-for-fuel mth)]
+        (cond
+          ; the ore required is greater than 1e12
+          ; so search the lower half
+          (> n-ore t) (recur coll l (dec m) t)
+          ; the ore required is less than 1e12
+          ; but adding one fuel worth of ore is greater
+          (and (< n-ore t) (>= (+ n-ore ore-for-one-fuel) t)) m
+          ; the ore required is less than 1e12
+          ; so search the upper half
+          (< n-ore t) (recur coll (inc m) u t)
+          ; we've found our target
+          ; so return its index
+          (= n-ore t) m
+          )))))
+
+(println (+ 1 (bsearch (range 1 13478414) 1000000000000)))
+(println (n-ore-for-fuel 2371699))
